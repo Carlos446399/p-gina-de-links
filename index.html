@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VidGrab – Baixar vídeos pelo link</title>
+<meta name="description" content="Cole o link do vídeo e baixe em MP4 ou MP3, de forma rápida e gratuita.">
+<style>
+:root{
+  --bg:#0b0f1a;--bg2:#121830;--card:#161d38;--border:#263056;
+  --text:#e8ecff;--muted:#9aa5d1;--accent:#6c5ce7;--accent2:#00cec9;--danger:#ff6b6b;--ok:#2ecc71;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;
+  background-image:radial-gradient(circle at 20% 0%,#2a2170 0,transparent 40%),radial-gradient(circle at 90% 20%,#0b5c5a 0,transparent 35%)}
+a{color:var(--accent2);text-decoration:none}
+.container{width:min(1100px,92%);margin:0 auto}
+
+header{padding:18px 0;border-bottom:1px solid var(--border);backdrop-filter:blur(8px);position:sticky;top:0;z-index:10;background:rgba(11,15,26,.8)}
+.nav{display:flex;justify-content:space-between;align-items:center}
+.logo{font-weight:800;font-size:1.4rem;letter-spacing:-.5px}
+.logo span{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+nav a{color:var(--muted);margin-left:22px;font-size:.95rem}
+nav a:hover{color:var(--text)}
+
+.hero{text-align:center;padding:70px 0 40px}
+.hero h1{font-size:clamp(2rem,5vw,3.4rem);line-height:1.15;letter-spacing:-1px;margin-bottom:14px}
+.hero h1 em{font-style:normal;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:var(--muted);max-width:620px;margin:0 auto 34px;font-size:1.1rem}
+
+.box{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:18px;max-width:780px;margin:0 auto;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+input[type=url]{flex:1;min-width:200px;padding:15px 16px;border-radius:12px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:1rem;outline:none}
+input[type=url]:focus{border-color:var(--accent)}
+button{cursor:pointer;border:0;border-radius:12px;padding:15px 22px;font-size:1rem;font-weight:700;color:#fff;
+  background:linear-gradient(135deg,var(--accent),#8e7bff);transition:transform .15s,opacity .15s}
+button:hover{transform:translateY(-1px)}
+button:disabled{opacity:.55;cursor:not-allowed;transform:none}
+button.ghost{background:var(--bg2);border:1px solid var(--border);color:var(--text)}
+button.green{background:linear-gradient(135deg,#00b894,var(--accent2))}
+
+#msg{margin-top:14px;font-size:.95rem;min-height:1.2em}
+#msg.err{color:var(--danger)} #msg.ok{color:var(--ok)}
+
+.result{display:none;margin-top:18px;text-align:left;border-top:1px solid var(--border);padding-top:18px}
+.result.show{display:grid;grid-template-columns:240px 1fr;gap:20px}
+.thumb{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;background:var(--bg2)}
+.meta h3{font-size:1.1rem;margin-bottom:6px;word-break:break-word}
+.meta .sub{color:var(--muted);font-size:.9rem;margin-bottom:14px}
+.opts{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+select{padding:12px 14px;border-radius:10px;background:var(--bg2);color:var(--text);border:1px solid var(--border);font-size:.95rem}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid #fff6;border-top-color:#fff;border-radius:50%;animation:s .7s linear infinite;vertical-align:-3px;margin-right:8px}
+@keyframes s{to{transform:rotate(360deg)}}
+
+section{padding:60px 0}
+section h2{text-align:center;font-size:clamp(1.5rem,3.5vw,2.1rem);margin-bottom:34px;letter-spacing:-.5px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px}
+.card .ico{font-size:2rem;margin-bottom:10px}
+.card h3{margin-bottom:6px;font-size:1.1rem}
+.card p{color:var(--muted);font-size:.95rem}
+.steps .num{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-weight:800;margin-bottom:12px}
+.platforms{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.chip{padding:9px 18px;border-radius:999px;background:var(--card);border:1px solid var(--border);color:var(--muted);font-size:.95rem}
+
+details{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:12px;max-width:780px;margin-inline:auto}
+summary{cursor:pointer;font-weight:600}
+details p{color:var(--muted);margin-top:10px;font-size:.95rem}
+
+.notice{max-width:780px;margin:0 auto;background:#2a1f10;border:1px solid #6b4e1f;color:#f3d9a4;border-radius:12px;padding:14px 18px;font-size:.9rem}
+footer{border-top:1px solid var(--border);padding:30px 0;text-align:center;color:var(--muted);font-size:.9rem}
+
+@media(max-width:700px){
+  nav a{display:none}
+  .hero{padding:44px 0 28px}
+  .result.show{grid-template-columns:1fr}
+  button{width:100%}
+  .row button{flex:1 1 100%}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container nav">
+    <div class="logo">Vid<span>Grab</span></div>
+    <nav>
+      <a href="#como">Como usar</a>
+      <a href="#plataformas">Plataformas</a>
+      <a href="#faq">Dúvidas</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="container hero">
+    <h1>Baixe vídeos <em>pelo link</em>, rápido e fácil</h1>
+    <p>Cole o endereço do vídeo, escolha MP4 ou MP3 e baixe direto no seu celular ou computador.</p>
+
+    <div class="box">
+      <div class="row">
+        <input type="url" id="url" placeholder="Cole o link do vídeo aqui..." autocomplete="off">
+        <button class="ghost" id="pasteBtn" type="button">📋 Colar</button>
+        <button id="searchBtn" type="button">Buscar</button>
+      </div>
+      <div id="msg"></div>
+
+      <div class="result" id="result">
+        <img class="thumb" id="thumb" alt="Miniatura do vídeo">
+        <div class="meta">
+          <h3 id="title"></h3>
+          <div class="sub" id="sub"></div>
+          <div class="opts">
+            <select id="format">
+              <option value="mp4">🎬 Vídeo (MP4)</option>
+              <option value="mp3">🎵 Áudio (MP3)</option>
+            </select>
+            <select id="quality">
+              <option value="2160">4K (2160p)</option>
+              <option value="1440">2K (1440p)</option>
+              <option value="1080">Full HD (1080p)</option>
+              <option value="720" selected>HD (720p)</option>
+              <option value="480">480p</option>
+              <option value="360">360p</option>
+            </select>
+          </div>
+          <button class="green" id="dlBtn" type="button">⬇ Baixar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section id="como">
+    <div class="container">
+      <h2>Como funciona</h2>
+      <div class="grid steps">
+        <div class="card"><div class="num">1</div><h3>Copie o link</h3><p>Abra o vídeo na plataforma e copie o endereço (URL).</p></div>
+        <div class="card"><div class="num">2</div><h3>Cole e busque</h3><p>Cole aqui no campo acima e clique em Buscar.</p></div>
+        <div class="card"><div class="num">3</div><h3>Escolha e baixe</h3><p>Selecione formato e qualidade e clique em Baixar.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <h2>Por que usar</h2>
+      <div class="grid">
+        <div class="card"><div class="ico">⚡</div><h3>Rápido</h3><p>Sem cadastro e sem instalar nada.</p></div>
+        <div class="card"><div class="ico">📱</div><h3>Funciona em tudo</h3><p>Celular, tablet e computador.</p></div>
+        <div class="card"><div class="ico">🎞️</div><h3>MP4 e MP3</h3><p>Baixe o vídeo completo ou só o áudio.</p></div>
+        <div class="card"><div class="ico">🔒</div><h3>Privado</h3><p>Os arquivos são apagados do servidor após o download.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="plataformas">
+    <div class="container">
+      <h2>Plataformas compatíveis</h2>
+      <div class="platforms">
+        <span class="chip">YouTube</span><span class="chip">Instagram</span><span class="chip">TikTok</span>
+        <span class="chip">Facebook</span><span class="chip">X (Twitter)</span><span class="chip">Vimeo</span>
+        <span class="chip">Reddit</span><span class="chip">Twitch</span><span class="chip">Dailymotion</span>
+        <span class="chip">+ 1000 sites</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="container">
+      <h2>Perguntas frequentes</h2>
+      <details><summary>É gratuito?</summary><p>Sim, o uso é gratuito e sem cadastro.</p></details>
+      <details><summary>Onde o vídeo é salvo?</summary><p>Na pasta de downloads do seu navegador/dispositivo.</p></details>
+      <details><summary>Não consegui baixar, e agora?</summary><p>Verifique se o link está correto e se o vídeo é público. Vídeos privados, com idade restrita ou protegidos por DRM não podem ser baixados.</p></details>
+      <details><summary>É legal?</summary><p>Baixe apenas conteúdo seu, de domínio público, com licença livre ou com autorização do autor. Respeite os direitos autorais e os termos de cada plataforma.</p></details>
+    </div>
+  </section>
+
+  <div class="container" style="padding-bottom:50px">
+    <div class="notice">⚠️ Use esta ferramenta somente para conteúdo que você tem direito de baixar. Você é responsável pelo uso e pelo respeito aos direitos autorais e aos termos das plataformas.</div>
+  </div>
+</main>
+
+<footer>
+  <div class="container">© <span id="year"></span> VidGrab · Todos os direitos reservados</div>
+</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const urlInput = $('url'), msg = $('msg'), result = $('result');
+$('year').textContent = new Date().getFullYear();
+
+function setMsg(text, type=''){ msg.textContent = text; msg.className = type; }
+
+async function safeJson(r){
+  try { return await r.json(); }
+  catch {
+    throw new Error('O servidor não respondeu corretamente. Inicie o servidor com "npm start" e abra http://localhost:3000 (não abra o index.html direto).');
+  }
+}
+
+function fmtDur(s){
+  if(!s) return '';
+  const h=Math.floor(s/3600), m=Math.floor(s%3600/60), x=Math.floor(s%60);
+  return (h?h+':':'') + String(m).padStart(h?2:1,'0') + ':' + String(x).padStart(2,'0');
+}
+
+$('pasteBtn').onclick = async () => {
+  try { urlInput.value = (await navigator.clipboard.readText()).trim(); urlInput.focus(); }
+  catch { setMsg('Não foi possível colar automaticamente. Cole manualmente (Ctrl+V).', 'err'); }
+};
+
+urlInput.addEventListener('keydown', e => { if(e.key==='Enter') $('searchBtn').click(); });
+
+$('format').onchange = () => { $('quality').style.display = $('format').value==='mp3' ? 'none' : ''; };
+
+$('searchBtn').onclick = async () => {
+  const url = urlInput.value.trim();
+  result.classList.remove('show');
+  if(!/^https?:\/\//i.test(url)){ setMsg('Cole um link válido começando com http:// ou https://', 'err'); return; }
+  const btn = $('searchBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Buscando';
+  setMsg('');
+  try{
+    const r = await fetch('/api/info', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({url})});
+    const d = await safeJson(r);
+    if(!r.ok) throw new Error(d.error || 'Erro ao buscar o vídeo.');
+    $('thumb').src = d.thumbnail || '';
+    $('title').textContent = d.title || 'Vídeo';
+    $('sub').textContent = [d.uploader, fmtDur(d.duration), d.platform].filter(Boolean).join(' · ');
+    result.classList.add('show');
+    result.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }catch(e){ setMsg(e.message, 'err'); }
+  finally{ btn.disabled=false; btn.textContent='Buscar'; }
+};
+
+$('dlBtn').onclick = () => {
+  const url = urlInput.value.trim();
+  const params = new URLSearchParams({url, format:$('format').value, quality:$('quality').value});
+  const btn = $('dlBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Preparando...';
+  setMsg('Preparando o arquivo no servidor, pode levar alguns segundos...');
+  // Primeiro checa se há erro; depois dispara o download.
+  fetch('/api/prepare?' + params).then(async r => {
+    const d = await safeJson(r);
+    if(!r.ok) throw new Error(d.error || 'Falha ao preparar o download.');
+    setMsg('Download iniciado! ✅', 'ok');
+    window.location.href = '/api/file/' + d.id;
+  }).catch(e => setMsg(e.message, 'err'))
+    .finally(()=>{ btn.disabled=false; btn.textContent='⬇ Baixar'; });
+};
+</script>
+</body>
+</html>
