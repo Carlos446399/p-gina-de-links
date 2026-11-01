@@ -116,7 +116,8 @@ app.get('/api/file/:id', (req, res) => {
   const f = files.get(req.params.id);
   if (!f) return res.status(404).send('Arquivo expirado. Gere o download novamente.');
   res.setHeader('Content-Type', f.mime);
-  res.download(f.file, f.name, () => cleanup(req.params.id));
+  // Não apaga após o download: o usuário pode salvar E compartilhar. Expira sozinho em 10 min.
+  res.download(f.file, f.name);
 });
 
 function cleanup(id) {

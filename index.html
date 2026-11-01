@@ -50,6 +50,8 @@ button.green{background:linear-gradient(135deg,#00b894,var(--accent2))}
 .meta .sub{color:var(--muted);font-size:.9rem;margin-bottom:14px}
 .opts{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
 select{padding:12px 14px;border-radius:10px;background:var(--bg2);color:var(--text);border:1px solid var(--border);font-size:.95rem}
+.actions{display:none;gap:10px;flex-wrap:wrap;margin-top:12px}
+.actions.show{display:flex}
 .spinner{display:inline-block;width:16px;height:16px;border:2px solid #fff6;border-top-color:#fff;border-radius:50%;animation:s .7s linear infinite;vertical-align:-3px;margin-right:8px}
 @keyframes s{to{transform:rotate(360deg)}}
 
@@ -126,6 +128,10 @@ footer{border-top:1px solid var(--border);padding:30px 0;text-align:center;color
             </select>
           </div>
           <button class="green" id="dlBtn" type="button">⬇ Baixar</button>
+          <div class="actions" id="actions">
+            <button class="green" id="saveBtn" type="button">💾 Salvar no celular</button>
+            <button id="shareBtn" type="button" disabled>📤 Compartilhar (WhatsApp, Kwai...)</button>
+          </div>
         </div>
       </div>
     </div>
@@ -234,18 +240,78 @@ $('searchBtn').onclick = async () => {
   finally{ btn.disabled=false; btn.textContent='Buscar'; }
 };
 
+const actions = $('actions'), saveBtn = $('saveBtn'), shareBtn = $('shareBtn');
+const MAX_SHARE_MB = 150;   // arquivos maiores que isso só podem ser salvos
+let currentId = null, shareFile = null;
+
+function fileNameFromHeaders(r, fmt){
+  const cd = r.headers.get('Content-Disposition') || '';
+  const m = cd.match(/filename\*=UTF-8''([^;]+)/i) || cd.match(/filename="?([^";]+)"?/i);
+  try { if(m) return decodeURIComponent(m[1]); } catch {}
+  return 'video.' + fmt;
+}
+
+// Baixa o arquivo para a memória do navegador (sem salvar no celular),
+// deixando o botão Compartilhar pronto para ser tocado.
+async function loadForShare(id, fmt){
+  shareFile = null;
+  shareBtn.disabled = true;
+  if(!navigator.share || !navigator.canShare){
+    shareBtn.textContent = '📤 Compartilhar indisponível neste navegador';
+    return;
+  }
+  shareBtn.innerHTML = '<span class="spinner"></span>Carregando para compartilhar...';
+  try{
+    const r = await fetch('/api/file/' + id);
+    if(!r.ok) throw new Error('falha');
+    const len = +r.headers.get('Content-Length') || 0;
+    if(len > MAX_SHARE_MB * 1024 * 1024){
+      shareBtn.textContent = '📤 Muito grande para compartilhar (use Salvar)';
+      return;
+    }
+    const blob = await r.blob();
+    const name = fileNameFromHeaders(r, fmt);
+    const file = new File([blob], name, {type: blob.type || (fmt==='mp3' ? 'audio/mpeg' : 'video/mp4')});
+    if(!navigator.canShare({files:[file]})){
+      shareBtn.textContent = '📤 Compartilhar não suportado neste aparelho';
+      return;
+    }
+    if(id !== currentId) return;       // usuário já pediu outro vídeo
+    shareFile = file;
+    shareBtn.disabled = false;
+    shareBtn.textContent = '📤 Compartilhar (WhatsApp, Kwai...)';
+  }catch{
+    shareBtn.textContent = '📤 Não foi possível preparar o compartilhamento';
+  }
+}
+
+shareBtn.onclick = async () => {
+  if(!shareFile) return;
+  try{
+    await navigator.share({files:[shareFile], title: shareFile.name});
+    setMsg('Compartilhado! ✅', 'ok');
+  }catch(e){
+    if(e && e.name !== 'AbortError') setMsg('Não foi possível compartilhar. Use "Salvar no celular".', 'err');
+  }
+};
+
+saveBtn.onclick = () => { if(currentId) window.location.href = '/api/file/' + currentId; };
+
 $('dlBtn').onclick = () => {
   const url = urlInput.value.trim();
-  const params = new URLSearchParams({url, format:$('format').value, quality:$('quality').value});
+  const fmt = $('format').value;
+  const params = new URLSearchParams({url, format:fmt, quality:$('quality').value});
   const btn = $('dlBtn');
+  actions.classList.remove('show'); currentId = null; shareFile = null;
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Preparando...';
   setMsg('Preparando o arquivo no servidor, pode levar alguns segundos...');
-  // Primeiro checa se há erro; depois dispara o download.
   fetch('/api/prepare?' + params).then(async r => {
     const d = await safeJson(r);
     if(!r.ok) throw new Error(d.error || 'Falha ao preparar o download.');
-    setMsg('Download iniciado! ✅', 'ok');
-    window.location.href = '/api/file/' + d.id;
+    currentId = d.id;
+    actions.classList.add('show');
+    setMsg('Pronto! Escolha: salvar no celular ou compartilhar direto. ✅', 'ok');
+    loadForShare(d.id, fmt);
   }).catch(e => setMsg(e.message, 'err'))
     .finally(()=>{ btn.disabled=false; btn.textContent='⬇ Baixar'; });
 };
